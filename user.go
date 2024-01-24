@@ -52,7 +52,22 @@ func (this *User) Offline() {
 	this.server.Broadcast(this, "下线")
 }
 
+// 给当前 user 对应的客户端发送消息
+func (this *User) SendMsg(msg string) {
+	this.conn.Write([]byte(msg))
+}
+
 // 处理广播信息
 func (this *User) DoMessage(msg string) {
-	this.server.Broadcast(this, msg)
+	if msg == "who" {
+		// 查询当前在线用户有哪些
+		this.server.mapLock.Lock()
+		for _, user := range this.server.OnlineMap {
+			onlineMsg := "[" + this.Addr + "]" + this.Name + ":" + "在线...\n"
+			user.SendMsg(onlineMsg)
+		}
+		this.server.mapLock.Unlock()
+	} else {
+		this.server.Broadcast(this, msg)
+	}
 }
