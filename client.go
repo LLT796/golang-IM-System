@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net"
+	"os"
 )
 
 type Client struct {
@@ -42,6 +44,52 @@ func (client *Client) menu() bool {
 	}
 }
 
+// 公聊方法
+func (client *Client) PublicChat() {
+	// 提示用户输入信息
+	var chatMsg string
+
+	fmt.Println(">>>请输入聊天内容，exit退出.")
+	fmt.Scanln(&chatMsg)
+
+	for chatMsg != "exit" {
+		// 发给服务器
+
+		// 消息不为空则发送
+		if len(chatMsg) != 0 {
+			sendMsg := chatMsg + "\n"
+			_, err := client.conn.Write([]byte(sendMsg))
+			if err != nil {
+				fmt.Println("conn Write err:", err)
+				break
+			}
+		}
+		chatMsg = ""
+		fmt.Println(">>>>请输入聊天内容，exit退出.")
+		fmt.Scanln(&chatMsg)
+	}
+}
+
+// 更新用户名方法
+func (client *Client) UpdateName() bool {
+	fmt.Println(">>>>>>请输入用户名:")
+	fmt.Scanln(&client.Name)
+
+	sendMsg := "rename|" + client.Name + "\n"
+	_, err := client.conn.Write([]byte(sendMsg))
+	if err != nil {
+		fmt.Println("conn Write err:", err)
+		return false
+	}
+	return true
+}
+
+// 添加处理server 回执消息方法
+func (client *Client) DealResponse() {
+	// 一旦 client.conn 有数据，就直接 copy 到 stdout 标准输出上，永久阻塞监听
+	io.Copy(os.Stdout, client.conn)
+}
+
 func (client *Client) Run() {
 	for client.flag != 0 {
 		for client.menu() != true {
@@ -51,7 +99,7 @@ func (client *Client) Run() {
 		switch client.flag {
 		case 1:
 			// 公聊模式
-			fmt.Println("公聊模式选择...")
+			client.PublicChat()
 			break
 		case 2:
 			// 私聊模式
@@ -59,7 +107,7 @@ func (client *Client) Run() {
 			break
 		case 3:
 			// 更改用户名
-			fmt.Println("更改用户名选择...")
+			client.UpdateName()
 			break
 		}
 	}
@@ -91,6 +139,9 @@ func main() {
 		fmt.Println(">>>>>>>>> 链接服务器失败...")
 		return
 	}
+
+	// 单独开启一个 goroutine 去处理 server 的回执消息
+	go client.DealResponse()
 	fmt.Println(">>>>>>>>>>链接服务器成功...")
 
 	// 启动客户端的业务
