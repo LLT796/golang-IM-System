@@ -3,9 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net"
-	"os"
 )
 
 type Client struct {
@@ -87,7 +85,7 @@ func (client *Client) UpdateName() bool {
 // 添加处理server 回执消息方法
 func (client *Client) DealResponse() {
 	// 一旦 client.conn 有数据，就直接 copy 到 stdout 标准输出上，永久阻塞监听
-	io.Copy(os.Stdout, client.conn)
+	//io.Copy(os.Stdout, client.conn)
 }
 
 func (client *Client) Run() {
